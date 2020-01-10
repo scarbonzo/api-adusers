@@ -21,22 +21,7 @@ namespace api_adusers.Controllers.v1
         [Route("v1/users")]
         public IActionResult GetUsers()
         {
-            List<User> results = new List<User>();
-
-            var dbusers = _context.Users
-                .Where(u => u.Active == true)
-                .Where(u => u.Deleted != true)
-                .Where(u => u.Program != null)
-                .Where(u => u.Office != null)
-                .Where(u => !u.Ou.Contains("General"))
-                .ToList();
-                
-            foreach(var user in dbusers)
-            {
-                results.Add(new User(user));
-            }
-
-            results = results.OrderBy(u => u.Username).ThenBy(u => u.Firstname).ToList();
+            var results = ActiveUsers();
 
             return Ok(results);
         }
@@ -57,6 +42,51 @@ namespace api_adusers.Controllers.v1
             {
                 return NotFound(Id);
             }
+        }
+
+        [HttpGet]
+        [Route("v1/programs")]
+        public ActionResult GetPrograms()
+        {
+            var programs = ActiveUsers()
+                .Select(u => u.Program)
+                .Distinct()
+                .ToList();
+
+            return Ok(programs);
+        }
+
+        [HttpGet]
+        [Route("v1/programs/{program}")]
+        public ActionResult GetProgramUsers(string program)
+        {
+            var users = ActiveUsers()
+                .Where(u => u.Program.ToLower() == program.ToLower());
+            return Ok(users);
+        }
+
+        private List<User> ActiveUsers()
+        {
+            List<User> results = new List<User>();
+
+            var dbusers = _context.Users
+                .Where(u => u.Active == true)
+                .Where(u => u.Firstname != null)
+                .Where(u => u.Lastname != null)
+                .Where(u => u.Deleted != true)
+                .Where(u => u.Program != null)
+                .Where(u => u.Office != null)
+                .Where(u => !u.Ou.Contains("General"))
+                .ToList();
+
+            foreach (var user in dbusers)
+            {
+                results.Add(new User(user));
+            }
+
+            results = results.OrderBy(u => u.SortName).ToList();
+
+            return results;
         }
     }
 }
